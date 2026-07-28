@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Control de Combustible</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: #121212;
+    color: #eee;
+    padding-bottom: 40px;
+  }
+  header {
+    background: linear-gradient(135deg, #1e3a1e, #0d1f0d);
+    padding: 18px 16px 22px;
+    text-align: center;
+    border-bottom: 2px solid #2ecc71;
+  }
+  header h1 { font-size: 20px; color: #2ecc71; }
+  header p { font-size: 12px; color: #999; margin-top: 4px; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+  .card {
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+  .card .val { font-size: 18px; font-weight: bold; color: #2ecc71; }
+  .card .lbl { font-size: 11px; color: #999; margin-top: 2px; }
+
+  section {
+    background: #1a1a1a;
+    margin: 12px;
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid #2a2a2a;
+  }
+  section h2 {
+    font-size: 14px;
+    color: #2ecc71;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: #aaa;
+    margin: 8px 0 4px;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    background: #262626;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    color: #eee;
+    font-size: 15px;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chk { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .chk input { width: auto; }
+  .chk label { margin: 0; font-size: 13px; }
+
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .btn-main {
+    width: 100%;
+    background: #2ecc71;
+    color: #0d1f0d;
+    margin-top: 14px;
+  }
+  .btn-main:active { background: #27ae60; }
+
+  .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn-sec {
+    background: #262626;
+    color: #ccc;
+    border: 1px solid #3a3a3a;
+    font-size: 12px;
+    padding: 10px 6px;
+  }
+  .btn-danger { color: #e74c3c; border-color: #4a2222; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 8px 4px; text-align: right; border-bottom: 1px solid #2a2a2a; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #999; font-weight: normal; }
+  td.consumo { color: #2ecc71; font-weight: bold; }
+  .del-btn {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    font-size: 16px;
+    padding: 0 4px;
+  }
+  .empty { text-align: center; color: #666; padding: 20px; font-size: 13px; }
+  .note { font-size: 11px; color: #777; margin-top: 8px; line-height: 1.4; }
+  #fileInput { display: none; }
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2ecc71;
+    color: #0d1f0d;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⛽ Control de Combustible</h1>
+  <p>Registro personal de cargas</p>
+</header>
+
+<div class="cards">
+  <div class="card"><div class="val" id="cGastoMes">$0</div><div class="lbl">Gasto este mes</div></div>
+  <div class="card"><div class="val" id="cGastoTotal">$0</div><div class="lbl">Gasto total</div></div>
+  <div class="card"><div class="val" id="cConsumo">-</div><div class="lbl">Consumo promedio</div></div>
+  <div class="card"><div class="val" id="cPrecio">-</div><div class="lbl">Último $/litro</div></div>
+</div>
+
+<section>
+  <h2>Nueva carga</h2>
+  <div class="row2">
+    <div>
+      <label>Fecha</label>
+      <input type="date" id="fFecha">
+    </div>
+    <div>
+      <label>Kilometraje</label>
+      <input type="number" id="fKm" placeholder="Ej: 45230" inputmode="numeric">
+    </div>
+  </div>
+  <div class="row2">
+    <div>
+      <label>Litros cargados</label>
+      <input type="number" step="0.01" id="fLitros" placeholder="Ej: 32.5" inputmode="decimal">
+    </div>
+    <div>
+      <label>Precio por litro</label>
+      <input type="number" step="0.01" id="fPrecio" placeholder="Ej: 950" inputmode="decimal">
+    </div>
+  </div>
+  <label>Total pagado (se calcula solo, o cargalo manual)</label>
+  <input type="number" step="0.01" id="fTotal" placeholder="Se calcula automáticamente">
+
+  <label>Estación / Lugar (opcional)</label>
+  <input type="text" id="fLugar" placeholder="Ej: YPF Ruta 12">
+
+  <div class="chk">
+    <input type="checkbox" id="fLleno" checked>
+    <label for="fLleno">Tanque lleno (necesario para calcular consumo)</label>
+  </div>
+
+  <label>Notas (opcional)</label>
+  <input type="text" id="fNotas" placeholder="Ej: viaje a Resistencia">
+
+  <button class="btn-main" onclick="guardarCarga()">Guardar carga</button>
+</section>
+
+<section>
+  <h2>Historial</h2>
+  <div id="tablaWrap">
+    <div class="empty">Todavía no cargaste ninguna carga</div>
+  </div>
+</section>
+
+<section>
+  <h2>Herramientas</h2>
+  <div class="tools">
+    <button class="btn-sec" onclick="exportarCSV()">📄 Exportar CSV</button>
+    <button class="btn-sec" onclick="exportarJSON()">💾 Backup JSON</button>
+    <button class="btn-sec" onclick="document.getElementById('fileInput').click()">📥 Restaurar backup</button>
+    <button class="btn-sec btn-danger" onclick="borrarTodo()">🗑️ Borrar todo</button>
+  </div>
+  <input type="file" id="fileInput" accept=".json" onchange="restaurarJSON(event)">
+  <div class="note">Los datos se guardan solo en este dispositivo (localStorage). Hacé backup JSON de vez en cuando para no perder el historial.</div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var STORAGE_KEY = 'combustible_personal_v1';
+var entries = [];
+
+function cargarDatos() {
+  var raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try { entries = JSON.parse(raw); } catch(e) { entries = []; }
+  }
+}
+
+function guardarDatos() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show';
+  setTimeout(function() { t.className = 'toast'; }, 2000);
+}
+
+function hoyISO() {
+  var d = new Date();
+  var m = ('0' + (d.getMonth()+1)).slice(-2);
+  var day = ('0' + d.getDate()).slice(-2);
+  return d.getFullYear() + '-' + m + '-' + day;
+}
+
+document.getElementById('fFecha').value = hoyISO();
+
+// auto-calcular total al cambiar litros o precio
+function recalcTotal() {
+  var litros = parseFloat(document.getElementById('fLitros').value);
+  var precio = parseFloat(document.getElementById('fPrecio').value);
+  if (!isNaN(litros) && !isNaN(precio)) {
+    document.getElementById('fTotal').value = (litros * precio).toFixed(2);
+  }
+}
+document.getElementById('fLitros').addEventListener('input', recalcTotal);
+document.getElementById('fPrecio').addEventListener('input', recalcTotal);
+
+function guardarCarga() {
+  var fecha = document.getElementById('fFecha').value;
+  var km = parseFloat(document.getElementById('fKm').value);
+  var litros = parseFloat(document.getElementById('fLitros').value);
+  var precio = parseFloat(document.getElementById('fPrecio').value);
+  var total = parseFloat(document.getElementById('fTotal').value);
+  var lugar = document.getElementById('fLugar').value.trim();
+  var notas = document.getElementById('fNotas').value.trim();
+  var lleno = document.getElementById('fLleno').checked;
+
+  if (!fecha || isNaN(km) || isNaN(litros)) {
+    alert('Completá al menos fecha, kilometraje y litros.');
+    return;
+  }
+  if (isNaN(total)) {
+    total = (!isNaN(precio)) ? litros * precio : 0;
+  }
+  if (isNaN(precio) && litros > 0) {
+    precio = total / litros;
+  }
+
+  var entry = {
+    id: Date.now().toString(36) + Math.random().toString(36).substr(2,5),
+    fecha: fecha,
+    km: km,
+    litros: litros,
+    precio: isNaN(precio) ? 0 : precio,
+    total: isNaN(total) ? 0 : total,
+    lugar: lugar,
+    notas: notas,
+    lleno: lleno
+  };
+
+  entries.push(entry);
+  guardarDatos();
+  renderTodo();
+  showToast('Carga guardada ✓');
+
+  // limpiar formulario, mantener fecha de hoy
+  document.getElementById('fKm').value = '';
+  document.getElementById('fLitros').value = '';
+  document.getElementById('fPrecio').value = '';
+  document.getElementById('fTotal').value = '';
+  document.getElementById('fLugar').value = '';
+  document.getElementById('fNotas').value = '';
+  document.getElementById('fFecha').value = hoyISO();
+}
+
+function eliminarCarga(id) {
+  if (!confirm('¿Eliminar esta carga?')) return;
+  entries = entries.filter(function(e) { return e.id !== id; });
+  guardarDatos();
+  renderTodo();
+  showToast('Carga eliminada');
+}
+
+function borrarTodo() {
+  if (!confirm('Esto borra TODAS las cargas guardadas. ¿Estás seguro?')) return;
+  if (!confirm('Confirmá de nuevo: se pierde todo el historial. ¿Seguro?')) return;
+  entries = [];
+  guardarDatos();
+  renderTodo();
+  showToast('Historial borrado');
+}
+
+// calcula consumo entre cargas consecutivas (ordenadas por km)
+function calcularConsumos() {
+  var ordenadas = entries.slice().sort(function(a,b) { return a.km - b.km; });
+  var mapaConsumo = {};
+  for (var i = 1; i < ordenadas.length; i++) {
+    var actual = ordenadas[i];
+    var anterior = ordenadas[i-1];
+    if (actual.lleno) {
+      var kmRec = actual.km - anterior.km;
+      if (kmRec > 0 && actual.litros > 0) {
+        var kml = kmRec / actual.litros;
+        mapaConsumo[actual.id] = { kmRec: kmRec, kml: kml };
+      }
+    }
+  }
+  return mapaConsumo;
+}
+
+function renderTabla() {
+  var wrap = document.getElementById('tablaWrap');
+  if (entries.length === 0) {
+    wrap.innerHTML = '<div class="empty">Todavía no cargaste ninguna carga</div>';
+    return;
+  }
+  var consumos = calcularConsumos();
+  var ordenadasDesc = entries.slice().sort(function(a,b) {
+    if (a.fecha !== b.fecha) return a.fecha < b.fecha ? 1 : -1;
+    return b.km - a.km;
+  });
+
+  var html = '<table><thead><tr>' +
+    '<th>Fecha</th><th>Km</th><th>Litros</th><th>Total</th><th>Km/L</th><th></th>' +
+    '</tr></thead><tbody>';
+
+  ordenadasDesc.forEach(function(e) {
+    var c = consumos[e.id];
+    var kml = c ? c.kml.toFixed(2) : '-';
+    var fechaFmt = e.fecha.split('-').reverse().join('/');
+    html += '<tr>' +
+      '<td>' + fechaFmt + (e.lugar ? '<br><span style="color:#666;font-size:10px">' + escapeHtml(e.lugar) + '</span>' : '') + '</td>' +
+      '<td>' + e.km.toLocaleString('es-AR') + '</td>' +
+      '<td>' + e.litros.toFixed(1) + '</td>' +
+      '<td>$' + e.total.toFixed(0) + '</td>' +
+      '<td class="consumo">' + kml + '</td>' +
+      '<td><button class="del-btn" onclick="eliminarCarga(\'' + e.id + '\')">✕</button></td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function renderResumen() {
+  var ahora = new Date();
+  var mesActual = ahora.getFullYear() + '-' + ('0'+(ahora.getMonth()+1)).slice(-2);
+
+  var gastoMes = 0, gastoTotal = 0, litrosTotal = 0;
+  entries.forEach(function(e) {
+    gastoTotal += e.total;
+    litrosTotal += e.litros;
+    if (e.fecha.indexOf(mesActual) === 0) gastoMes += e.total;
+  });
+
+  document.getElementById('cGastoMes').textContent = '$' + gastoMes.toLocaleString('es-AR', {maximumFractionDigits:0});
+  document.getElementById('cGastoTotal').textContent = '$' + gastoTotal.toLocaleString('es-AR', {maximumFractionDigits:0});
+
+  var consumos = calcularConsumos();
+  var vals = Object.keys(consumos).map(function(k){ return consumos[k].kml; });
+  if (vals.length > 0) {
+    var prom = vals.reduce(function(a,b){return a+b;},0) / vals.length;
+    document.getElementById('cConsumo').textContent = prom.toFixed(2) + ' km/l';
+  } else {
+    document.getElementById('cConsumo').textContent = '-';
+  }
+
+  var ordenadas = entries.slice().sort(function(a,b) {
+    if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+    return a.km - b.km;
+  });
+  var ultima = ordenadas[ordenadas.length - 1];
+  document.getElementById('cPrecio').textContent = ultima ? ('$' + ultima.precio.toFixed(0)) : '-';
+}
+
+function renderTodo() {
+  renderTabla();
+  renderResumen();
+}
+
+function exportarCSV() {
+  if (entries.length === 0) { alert('No hay datos para exportar.'); return; }
+  var consumos = calcularConsumos();
+  var filas = ['Fecha;Km;Litros;PrecioPorLitro;Total;TanqueLleno;KmPorLitro;Lugar;Notas'];
+  entries.slice().sort(function(a,b){ return a.km - b.km; }).forEach(function(e) {
+    var c = consumos[e.id];
+    var kml = c ? c.kml.toFixed(2).replace('.',',') : '';
+    filas.push([
+      e.fecha,
+      e.km,
+      e.litros.toFixed(2).replace('.',','),
+      e.precio.toFixed(2).replace('.',','),
+      e.total.toFixed(2).replace('.',','),
+      e.lleno ? 'Si' : 'No',
+      kml,
+      (e.lugar||'').replace(/;/g,','),
+      (e.notas||'').replace(/;/g,',')
+    ].join(';'));
+  });
+  var csv = '\uFEFF' + filas.join('\r\n');
+  descargarArchivo(csv, 'combustible_' + hoyISO() + '.csv', 'text/csv;charset=utf-8');
+}
+
+function exportarJSON() {
+  var json = JSON.stringify(entries, null, 2);
+  descargarArchivo(json, 'backup_combustible_' + hoyISO() + '.json', 'application/json');
+}
+
+function restaurarJSON(ev) {
+  var file = ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('formato inválido');
+      if (!confirm('Esto reemplaza el historial actual (' + entries.length + ' cargas) por el del backup (' + data.length + ' cargas). ¿Continuar?')) return;
+      entries = data;
+      guardarDatos();
+      renderTodo();
+      showToast('Backup restaurado ✓');
+    } catch(err) {
+      alert('El archivo no es un backup válido.');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+function descargarArchivo(contenido, nombre, tipo) {
+  var blob = new Blob([contenido], {type: tipo});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+cargarDatos();
+renderTodo();
+</script>
+</body>
+</html>
